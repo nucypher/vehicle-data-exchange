@@ -24,7 +24,7 @@ Run the demo:
 ```sh
 $ pipenv shell
 
-(nucypher)$ python auto_analytics.py
+(nucypher)$ python vehicle_data_exchange.py
 ```
 
 * The characters can be viewed at [http://127.0.0.1:8050/](http://127.0.0.1:8050/)

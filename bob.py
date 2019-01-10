@@ -147,82 +147,39 @@ def update_graph(df_json_latest_measurements):
     # sort readings and order by timestamp
     df = df.sort_values(by='timestamp')
 
-    rpm_data = go.Scatter(
-        y=df['rpm'],
-        mode='lines',
-        name='RPM'
-    )
+    for key in PROPERTIES.keys():
 
-    speed_data = go.Scatter(
-        y=df['speed'],
-        mode='lines',
-        name='Speed'
-    )
+        data = go.Scatter(
+            y=df[key],
+            fill='tozeroy',
+            fillcolor='#1E65F3'
+        )
 
-    graph_layout = Layout(
-        xaxis=dict(
-            title='Time Elapsed (sec)',
-            range=[0, 30],
-            showgrid=False,
-            showline=True,
-            zeroline=False,
-            fixedrange=True,
-            tickvals=[0, 10, 20, 30],
-            ticktext=['30', '20', '10', '0']
-        ),
-        margin=Margin(
-            t=45,
-            l=50,
-            r=1,
-            b=1),
-        title='Speed & RPM'
-    )
+        graph_layout = Layout(
+            xaxis=dict(
+                title='Time Elapsed (sec)',
+                range=[0, 30],
+                showgrid=False,
+                showline=True,
+                zeroline=False,
+                fixedrange=True,
+                tickvals=[0, 10, 20, 30],
+                ticktext=['30', '20', '10', '0']
+            ),
+            yaxis=dict(
+                title='{}'.format(PROPERTIES[key]),
+                range=[min(df[key]), max(df[key])],
+                zeroline=False,
+                fixedrange=False),
+            margin=Margin(
+                t=45,
+                l=50,
+                r=1,
+                b=1),
+            title='{}'.format(PROPERTIES[key])
+        )
 
-    fig = plotly.tools.make_subplots(rows=2, cols=1, specs=[[{}], [{}]],
-                                     shared_xaxes=True, shared_yaxes=False,
-                                     vertical_spacing=0.001)
-
-    fig.append_trace(rpm_data, 2, 1)
-    fig.append_trace(speed_data, 1, 1)
-
-    fig['layout'] = graph_layout
-
-    graphs.append(html.Div(dcc.Graph(id='rpmxspeed', figure=fig),
-                           className='four columns'))
-
-    # for key in PROPERTIES.keys():
-    #
-    #     data = go.Scatter(
-    #         y=df[key],
-    #         fill='tozeroy',
-    #         fillcolor='#1E65F3'
-    #     )
-    #
-    #     graph_layout = Layout(
-    #         xaxis=dict(
-    #             title='Time Elapsed (sec)',
-    #             range=[0, 30],
-    #             showgrid=False,
-    #             showline=True,
-    #             zeroline=False,
-    #             fixedrange=True,
-    #             tickvals=[0, 10, 20, 30],
-    #             ticktext=['30', '20', '10', '0']
-    #         ),
-    #         yaxis=dict(
-    #             title='{}'.format(PROPERTIES[key]),
-    #             range=[min(df[key]), max(df[key])],
-    #             zeroline=False,
-    #             fixedrange=False),
-    #         margin=Margin(
-    #             t=45,
-    #             l=50,
-    #             r=1,
-    #             b=1),
-    #         title='{}'.format(PROPERTIES[key])
-    #     )
-
-        # graphs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
-        #                        className='four columns'))
+        graphs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
+                               className='four columns'))
 
     return graphs
