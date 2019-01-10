@@ -9,3 +9,6 @@ data
 
 # ignore pyCharm files
 .idea
+
+# cache files
+__pycache__

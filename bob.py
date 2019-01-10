@@ -1,4 +1,3 @@
-import collections
 from dash.dependencies import Output, Input, State, Event
 import dash_core_components as dcc
 import dash_html_components as html
@@ -7,10 +6,7 @@ import json
 import nucypher_helper
 import pandas as pd
 import plotly.graph_objs as go
-import plotly
-from plotly.graph_objs import Scatter, Layout, Figure
 from plotly.graph_objs.layout import Margin
-from plotly.graph_objs.scatter import *
 import sqlite3
 import time
 from umbral import pre, config
@@ -147,15 +143,26 @@ def update_graph(df_json_latest_measurements):
     # sort readings and order by timestamp
     df = df.sort_values(by='timestamp')
 
+    # create joint graph for rpm and speed
+    graphs.append(html.Div(get_rpm_speed_graph(df), className='four columns'))
+
+    # add other graphs
     for key in PROPERTIES.keys():
+        if key in ['rpm', 'speed']:
+            # already added
+            continue
 
         data = go.Scatter(
             y=df[key],
             fill='tozeroy',
-            fillcolor='#1E65F3'
+            line=dict(
+                color='#1E65F3',
+            ),
+            fillcolor='#9DC3E6'
         )
 
-        graph_layout = Layout(
+        graph_layout = go.Layout(
+            title='{}'.format(PROPERTIES[key]),
             xaxis=dict(
                 title='Time Elapsed (sec)',
                 range=[0, 30],
@@ -176,10 +183,46 @@ def update_graph(df_json_latest_measurements):
                 l=50,
                 r=1,
                 b=1),
-            title='{}'.format(PROPERTIES[key])
         )
 
         graphs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
                                className='four columns'))
 
     return graphs
+
+
+def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
+    rpm_data = go.Scatter(
+        y=df['rpm'],
+        name='RPM'
+    )
+    speed_data = go.Scatter(
+        y=df['speed'],
+        name='Speed',
+        yaxis='y2'
+    )
+    data = [rpm_data, speed_data]
+
+    graph_layout = go.Layout(
+        title='RPM and Speed',
+        xaxis=dict(
+            title='Time Elapsed (sec)',
+            range=[0, 30],
+            fixedrange=True,
+            tickvals=[0, 10, 20, 30],
+            ticktext=['30', '20', '10', '0']
+        ),
+        yaxis=dict(
+            title='{}'.format(PROPERTIES['rpm']),
+            zeroline=False,
+        ),
+        yaxis2=dict(
+            title='{}'.format(PROPERTIES['speed']),
+            overlaying='y',
+            side='right',
+            zeroline=False,
+        )
+    )
+    fig = go.Figure(data=data, layout=graph_layout)
+
+    return dcc.Graph(id='rpm_speed', figure=fig)
