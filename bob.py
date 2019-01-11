@@ -150,7 +150,7 @@ def update_graph(df_json_latest_measurements):
 
     # other graphs
     for key in PROPERTIES.keys():
-        if key in ['rpm', 'vss', 'engineOn']:
+        if key in ['rpm', 'vss', 'engineOn', 'gpsTime']:
             # already added
             continue
 

@@ -92,14 +92,12 @@ def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
     else:
         last_sensor_readings = json.loads(last_readings)['carInfo']
         for key in last_sensor_readings.keys():
-            if key in ['gpsTime']:
-                sensor_readings[key] = timestamp
-                continue
             if key in ['engineOn']:
                 # skip boolean value
-                continue
-
-            sensor_readings[key] = last_sensor_readings[key] + random.uniform(-1, 1)
+                sensor_readings['engineOn'] = last_sensor_readings[key]
+            else:
+                # modify reading based on prior value
+                sensor_readings[key] = last_sensor_readings[key] + random.uniform(-1, 1)
 
     latest_readings = json.dumps(car_info)
     policy_pubkey = UmbralPublicKey.from_bytes(bytes.fromhex(policy_pubkey_hex))
