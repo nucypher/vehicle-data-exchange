@@ -1,6 +1,7 @@
 from dash.dependencies import Output, Input, State, Event
 import dash_core_components as dcc
 import dash_html_components as html
+from dash_table_experiments import DataTable
 import demo_keys
 import json
 import nucypher_helper
@@ -143,6 +144,12 @@ def update_graph(df_json_latest_measurements):
     # sort readings and order by timestamp
     df = df.sort_values(by='timestamp')
 
+    # add data table
+    divs.append(html.Div([
+        html.H5("Last 30s of Data"),
+        html.Div(get_latest_datatable(df), className='row')])
+    )
+
     # add graphs/figures
     inner_divs = list()
     num_divs_per_row = 2
@@ -171,6 +178,13 @@ def update_graph(df_json_latest_measurements):
         divs.append(html.Div(children=inner_divs, className='row'))
 
     return divs
+
+
+def get_latest_datatable(df: pd.DataFrame) -> DataTable:
+    rows = df.sort_values(by='timestamp', ascending=False).to_dict('rows')
+    return DataTable(id='latest-data-table',
+                     rows=rows,
+                     editable=False)
 
 
 def get_generic_graph_over_time(df: pd.DataFrame, key: str) -> dcc.Graph:
