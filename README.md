@@ -17,7 +17,7 @@ This simple use case showcases many interesting and distinctive aspects of NuCyp
 ### How to run the demo
 Install dependencies (only for the first time):
 ```sh
-$ pipenv install
+$ pipenv install --dev --three --skip-lock --pre
 ```
 
 Run the demo:
