@@ -20,7 +20,7 @@ layout = html.Div([
             html.Div([
                 html.Div([
                     html.H2('ALICIA'),
-                    html.P('Alicia has a monitor in her Vehicle (Enrico) that obtains readings from a '
+                    html.P('Alicia has a OBD device in her vehicle (Enrico) that obtains readings from a '
                            'variety of sensors and outputs this data in encrypted form. She thinks '
                            'that at some point in the future she may want to share this data with '
                            'her Insurance company.')

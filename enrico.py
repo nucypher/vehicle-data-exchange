@@ -19,14 +19,14 @@ layout = html.Div([
     html.Div([
         html.Div([
             html.Div([
-                html.Img(src='./assets/enrico.png', style={'height': '170px', 'width': '240px'}),
+                html.Img(src='./assets/enrico.png', style={'height': '150px', 'width': '220px'}),
             ], className='two columns'),
             html.Div([
                 html.Div([
                     html.H2('ENRICO'),
-                    html.P("Enrico is the Vehicle that uses a data policy key to encrypt Alicia's "
-                           "vehicular measurements into a database or some storage service "
-                           "(e.g., IPFS, S3, whatever). Data Sources like the Vehicle remain "
+                    html.P("Enrico is the OBD device in Alicia's vehicle that uses a data policy key "
+                           "to encrypt Alicia's vehicular measurements into a database or some storage service "
+                           "(e.g., IPFS, S3, whatever). Data Sources like the OBD device remain "
                            "completely unaware of the recipients. In their mind, they are producing data "
                            "for Alicia. "),
                 ], className="row")
@@ -44,7 +44,7 @@ layout = html.Div([
     ], className='row'),
     html.Hr(),
     html.Div([
-        html.H3('Encrypted Vehicular Data into Database'),
+        html.H3('Encrypted OBD Data in Database'),
         html.Div([
             html.Div('Latest Vehicle Data: ', className='two columns'),
             html.Div(id='cached-last-readings', className='two columns'),
@@ -76,7 +76,7 @@ def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
         sensor_readings[property_list[0]] = random.randrange(180, 230)
         sensor_readings[property_list[1]] = random.randrange(95, 115)
         sensor_readings[property_list[2]] = random.randrange(170, 220)
-        sensor_readings[property_list[3]] = random.randrange(1000, 9500)
+        sensor_readings[property_list[3]] = random.randrange(1000, 7500)
         sensor_readings[property_list[4]] = random.randrange(30, 140)
         sensor_readings[property_list[5]] = random.randrange(10, 90)
     else:

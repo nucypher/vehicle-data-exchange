@@ -5,7 +5,7 @@ import demo_keys
 import json
 import nucypher_helper
 import pandas as pd
-import plotly.graph_objs as go
+from plotly.graph_objs import Scatter, Layout, Figure
 from plotly.graph_objs.layout import Margin
 import sqlite3
 import time
@@ -27,9 +27,9 @@ layout = html.Div([
                 html.Div([
                     html.H2('INSURER BOB'),
                     html.P(
-                        "Dr. Bob is Alicia's Insurance Company and will be granted access by Alicia "
+                        "Bob is Alicia's Insurer and will be granted access by Alicia "
                         "to access the encrypted vehicle data database and requests a re-encrypted ciphertext for "
-                        "each set of timed measurements, which can then be decrypted using the Insurance company's "
+                        "each set of timed measurements, which can then be decrypted using the Insurer's "
                         "private key."),
                 ], className="row")
             ], className='five columns'),
@@ -131,37 +131,40 @@ def gen_pubkey():
     [Input('latest-decrypted-measurements', 'children')]
 )
 def update_graph(df_json_latest_measurements):
-    graphs = []
+    divs = []
 
     if df_json_latest_measurements is None:
-        return graphs
+        return divs
 
     df = pd.read_json(df_json_latest_measurements, convert_dates=False)
     if len(df) == 0:
-        return graphs
+        return divs
 
     # sort readings and order by timestamp
     df = df.sort_values(by='timestamp')
 
-    # create joint graph for rpm and speed
-    graphs.append(html.Div(get_rpm_speed_graph(df), className='four columns'))
+    # add graphs/figures
 
-    # add other graphs
+    # create joint graph for rpm and speed
+    divs.append(html.Div(get_rpm_speed_graph(df), className='four columns'))
+
+    # other graphs
     for key in PROPERTIES.keys():
         if key in ['rpm', 'speed']:
             # already added
             continue
 
-        data = go.Scatter(
+        data = Scatter(
             y=df[key],
             fill='tozeroy',
             line=dict(
                 color='#1E65F3',
             ),
-            fillcolor='#9DC3E6'
+            fillcolor='#9DC3E6',
+            mode='lines+markers',
         )
 
-        graph_layout = go.Layout(
+        graph_layout = Layout(
             title='{}'.format(PROPERTIES[key]),
             xaxis=dict(
                 title='Time Elapsed (sec)',
@@ -181,29 +184,31 @@ def update_graph(df_json_latest_measurements):
             margin=Margin(
                 t=45,
                 l=50,
-                r=1,
-                b=1),
+                r=50
+            )
         )
 
-        graphs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
-                               className='four columns'))
+        divs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
+                             className='four columns'))
 
-    return graphs
+    return divs
 
 
 def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
-    rpm_data = go.Scatter(
+    rpm_data = Scatter(
         y=df['rpm'],
-        name='RPM'
+        name='RPM',
+        mode='lines+markers'
     )
-    speed_data = go.Scatter(
+    speed_data = Scatter(
         y=df['speed'],
         name='Speed',
+        mode='lines+markers',
         yaxis='y2'
     )
     data = [rpm_data, speed_data]
 
-    graph_layout = go.Layout(
+    graph_layout = Layout(
         title='RPM and Speed',
         xaxis=dict(
             title='Time Elapsed (sec)',
@@ -221,8 +226,9 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
             overlaying='y',
             side='right',
             zeroline=False,
-        )
+        ),
+        legend={'x': 0, 'y': 1},
     )
-    fig = go.Figure(data=data, layout=graph_layout)
+    fig = Figure(data=data, layout=graph_layout)
 
     return dcc.Graph(id='rpm_speed', figure=fig)

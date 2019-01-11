@@ -19,7 +19,7 @@ index_page = html.Div([
     ], className='banner'),
     html.A('ALICIA', href='/alicia', target='_blank'),
     html.Br(),
-    html.A('ENRICO (VEHICLE)', href='/enrico', target='_blank'),
+    html.A('ENRICO (OBD DEVICE)', href='/enrico', target='_blank'),
     html.Br(),
     html.A('INSURER BOB', href='/bob', target='_blank'),
     html.Br(),
