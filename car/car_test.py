@@ -3,7 +3,11 @@ import msgpack
 
 CAR_DATA_FILENAME = 'car_data_bob.msgpack'
 
-data_source_public_key = ""
+
+data = {
+            'data_source': None,
+            'kits': list(),
+        }
 
 # The callback for when the client receives a CONNACK response from the server.
 #def on_connect(client, userdata, rc):
@@ -16,24 +20,24 @@ data_source_public_key = ""
 def on_message(client, userdata, msg):
     #print(msg.topic+" "+str(msg.payload))
     if msg.topic == "/Alicia_Car_Data":
-        print(msg.payload)
-        kits.append(msg.payload)
+        #print(msg.payload)
+        kits = data['kits']
+        kits.append(bytes(msg.payload))
     if msg.topic == "/Alicia_Car_Data/data_source_public_key":
-        print("Data Source Public Key "+ str(msg.payload))
-        data_source_public_key = msg.payload
-    if msg.topic == "/Alicia_Car_Data/end":
-        data = {
-            'data_source': 'something',
-            'kits': kits,
-        }
+        
+        data_source_public_key = bytes(msg.payload)
+        print("Data Source Public Key ")
+        print(data_source_public_key)
+        data['data_source'] = data_source_public_key
+    if msg.topic == "/Alicia_Car_Data/end":          
         with open(CAR_DATA_FILENAME, "wb") as file:
             msgpack.dump(data, file, use_bin_type=True)
+        quit()
 
         
 
         
 
-kits = list()
 client = mqtt.Client()
 #client.on_connect = on_connect
 client.on_message = on_message
