@@ -10,7 +10,7 @@ import time
 from umbral import pre
 from umbral.keys import UmbralPublicKey
 
-from app import app, DB_FILE, DB_NAME, PROPERTIES
+from app import app, DB_FILE, DB_NAME
 
 layout = html.Div([
     html.Div([
@@ -69,26 +69,42 @@ def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
         # button has not been clicked as yet or interval triggered before click
         return None
 
+    timestamp = time.time()
+
+    car_info = dict()
     sensor_readings = dict()
+    car_info['carInfo'] = sensor_readings
+
     if last_readings is None:
         # generate readings
-        property_list = list(PROPERTIES.keys())
-        sensor_readings[property_list[0]] = random.randrange(180, 230)
-        sensor_readings[property_list[1]] = random.randrange(95, 115)
-        sensor_readings[property_list[2]] = random.randrange(170, 220)
-        sensor_readings[property_list[3]] = random.randrange(1000, 7500)
-        sensor_readings[property_list[4]] = random.randrange(30, 140)
-        sensor_readings[property_list[5]] = random.randrange(10, 90)
+        sensor_readings['engineOn'] = True
+        sensor_readings['temp'] = random.randrange(180, 230)
+        sensor_readings['rpm'] = random.randrange(1000, 7500)
+        sensor_readings['vss'] = random.randrange(10, 80)
+        sensor_readings['maf'] = random.randrange(10, 20)
+        sensor_readings['throttlepos'] = random.randrange(10, 90)
+        sensor_readings['lat'] = random.randrange(30, 40)
+        sensor_readings['lon'] = random.randrange(-5, -3)
+        sensor_readings['alt'] = random.randrange(40, 50)
+        sensor_readings['gpsSpeed'] = random.randrange(30, 140)
+        sensor_readings['course'] = random.randrange(100, 180)
+        sensor_readings['gpsTime'] = timestamp
     else:
-        last_sensor_readings = json.loads(last_readings)
+        last_sensor_readings = json.loads(last_readings)['carInfo']
         for key in last_sensor_readings.keys():
+            if key in ['gpsTime']:
+                sensor_readings[key] = timestamp
+                continue
+            if key in ['engineOn']:
+                # skip boolean value
+                continue
+
             sensor_readings[key] = last_sensor_readings[key] + random.uniform(-1, 1)
 
-    latest_readings = json.dumps(sensor_readings)
+    latest_readings = json.dumps(car_info)
     policy_pubkey = UmbralPublicKey.from_bytes(bytes.fromhex(policy_pubkey_hex))
     ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
 
-    timestamp = time.time()
     df = pd.DataFrame.from_dict({
         'Timestamp': [timestamp],
         'Data': [ciphertext.hex()],

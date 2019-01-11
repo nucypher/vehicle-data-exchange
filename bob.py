@@ -105,7 +105,7 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
                                  capsule=capsule,
                                  decrypting_key=bob_privkeys['enc'])
 
-        readings = json.loads(data_bytes)
+        readings = json.loads(data_bytes)['carInfo']
         readings['timestamp'] = row['Timestamp']
         df = df.append(readings, ignore_index=True)
 
@@ -150,7 +150,7 @@ def update_graph(df_json_latest_measurements):
 
     # other graphs
     for key in PROPERTIES.keys():
-        if key in ['rpm', 'speed']:
+        if key in ['rpm', 'vss', 'engineOn']:
             # already added
             continue
 
@@ -201,7 +201,7 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
         mode='lines+markers'
     )
     speed_data = Scatter(
-        y=df['speed'],
+        y=df['vss'],
         name='Speed',
         mode='lines+markers',
         yaxis='y2'
@@ -222,7 +222,7 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
             zeroline=False,
         ),
         yaxis2=dict(
-            title='{}'.format(PROPERTIES['speed']),
+            title='{}'.format(PROPERTIES['vss']),
             overlaying='y',
             side='right',
             zeroline=False,

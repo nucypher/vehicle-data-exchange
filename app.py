@@ -15,11 +15,17 @@ os.mkdir("./data")
 DB_FILE = './data/vehicle_sensors.db'
 DB_NAME = 'VehicleData'
 
-# vehicular properties
-PROPERTIES = {'oil_temp': 'Oil Temperature (°C)',
-              'intake_temp': 'Intake Temperature (°C)',
-              'coolant_temp': 'Coolant Temperature (°C)',
+# OBD properties
+PROPERTIES = {'engineOn': 'Engine Status',
+              'temp': 'Temperature (°C)',
               'rpm': 'Revolutions Per Minute',
-              'speed': 'Speed (mph)',
-              'throttle_pos': 'Throttle Position (%)',
+              'vss': 'Vehicle Speed',
+              'maf': 'Mass AirFlow',
+              'throttlepos': 'Throttle Position (%)',
+              'lat': 'Latitude (°)',
+              'lon': 'Longitude (°)',
+              'alt': 'Alternator',
+              'gpsSpeed': 'GPS Speed',
+              'course': 'Course',
+              'gpsTime': "GPS Timestamp"
               }
