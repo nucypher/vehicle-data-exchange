@@ -5,7 +5,7 @@ import demo_keys
 import json
 import nucypher_helper
 import pandas as pd
-from plotly.graph_objs import Scatter, Layout, Figure
+from plotly.graph_objs import Scatter
 from plotly.graph_objs.layout import Margin
 import sqlite3
 import time
@@ -131,7 +131,7 @@ def gen_pubkey():
     [Input('latest-decrypted-measurements', 'children')]
 )
 def update_graph(df_json_latest_measurements):
-    divs = []
+    divs = list()
 
     if df_json_latest_measurements is None:
         return divs
@@ -144,54 +144,69 @@ def update_graph(df_json_latest_measurements):
     df = df.sort_values(by='timestamp')
 
     # add graphs/figures
-
-    # create joint graph for rpm and speed
-    divs.append(html.Div(get_rpm_speed_graph(df), className='four columns'))
-
-    # other graphs
+    inner_divs = list()
+    num_divs_per_row = 2
+    inner_div_class = 'six columns'  # 12/2 = 6
     for key in PROPERTIES.keys():
-        if key in ['rpm', 'vss', 'engineOn', 'gpsTime']:
-            # already added
+        if key in ['engineOn', 'gpsTime']:
+            # properties not to be graphed
             continue
+        elif key in ['rpm']:
+            generated_div = html.Div(get_rpm_speed_graph(df), className=inner_div_class)
+        elif key in ['vss']:
+            # already included in rpm speed graph (above)
+            continue
+        else:
+            generated_div = html.Div(get_generic_graph_over_time(df, key), className=inner_div_class)
 
-        data = Scatter(
-            y=df[key],
-            fill='tozeroy',
-            line=dict(
-                color='#1E65F3',
-            ),
-            fillcolor='#9DC3E6',
-            mode='lines+markers',
-        )
+        inner_divs.append(generated_div)
+        if len(inner_divs) == num_divs_per_row:
+            divs.append(html.Div(children=inner_divs, className='row'))
+            inner_divs = list()
 
-        graph_layout = Layout(
-            title='{}'.format(PROPERTIES[key]),
-            xaxis=dict(
-                title='Time Elapsed (sec)',
-                range=[0, 30],
-                showgrid=False,
-                showline=True,
-                zeroline=False,
-                fixedrange=True,
-                tickvals=[0, 10, 20, 30],
-                ticktext=['30', '20', '10', '0']
-            ),
-            yaxis=dict(
-                title='{}'.format(PROPERTIES[key]),
-                range=[min(df[key]), max(df[key])],
-                zeroline=False,
-                fixedrange=False),
-            margin=Margin(
-                t=45,
-                l=50,
-                r=50
-            )
-        )
-
-        divs.append(html.Div(dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout}),
-                             className='four columns'))
+    if len(inner_divs) > 0:
+        # extra div remaining
+        divs.append(html.Div(children=inner_divs, className='row'))
 
     return divs
+
+
+def get_generic_graph_over_time(df: pd.DataFrame, key: str) -> dcc.Graph:
+    data = Scatter(
+        y=df[key],
+        fill='tozeroy',
+        line=dict(
+            color='#1E65F3',
+        ),
+        fillcolor='#9DC3E6',
+        mode='lines+markers',
+    )
+
+    graph_layout = dict(
+        title='{}'.format(PROPERTIES[key]),
+        xaxis=dict(
+            title='Time Elapsed (sec)',
+            range=[0, 30],
+            showgrid=False,
+            showline=True,
+            zeroline=False,
+            fixedrange=True,
+            tickvals=[0, 10, 20, 30],
+            ticktext=['30', '20', '10', '0']
+        ),
+        yaxis=dict(
+            title='{}'.format(PROPERTIES[key]),
+            range=[min(df[key]), max(df[key])],
+            zeroline=False,
+            fixedrange=False),
+        margin=Margin(
+            t=45,
+            l=50,
+            r=50
+        )
+    )
+
+    return dcc.Graph(id=key, figure={'data': [data], 'layout': graph_layout})
 
 
 def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
@@ -208,7 +223,7 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
     )
     data = [rpm_data, speed_data]
 
-    graph_layout = Layout(
+    graph_layout = dict(
         title='RPM and Speed',
         xaxis=dict(
             title='Time Elapsed (sec)',
@@ -228,7 +243,11 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
             zeroline=False,
         ),
         legend={'x': 0, 'y': 1},
+        margin=Margin(
+            t=45,
+            l=50,
+            r=50
+        )
     )
-    fig = Figure(data=data, layout=graph_layout)
 
-    return dcc.Graph(id='rpm_speed', figure=fig)
+    return dcc.Graph(id='rpm_speed', figure={'data': data, 'layout': graph_layout})
