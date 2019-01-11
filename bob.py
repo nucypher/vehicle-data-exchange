@@ -148,14 +148,16 @@ def update_graph(df_json_latest_measurements):
     num_divs_per_row = 2
     inner_div_class = 'six columns'  # 12/2 = 6
     for key in PROPERTIES.keys():
-        if key in ['engineOn', 'gpsTime']:
+        if key in ['engineOn', 'gpsTime', 'vss', 'lat']:
             # properties not to be graphed
+
+            # vss already plotted with rpm
+            # lat already plotted with lon
             continue
-        elif key in ['rpm']:
+        elif key == 'rpm':
             generated_div = html.Div(get_rpm_speed_graph(df), className=inner_div_class)
-        elif key in ['vss']:
-            # already included in rpm speed graph (above)
-            continue
+        elif key == 'lon':
+            generated_div = html.Div(get_lon_lat_graph(df), className=inner_div_class)
         else:
             generated_div = html.Div(get_generic_graph_over_time(df, key), className=inner_div_class)
 
@@ -221,7 +223,6 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
         mode='lines+markers',
         yaxis='y2'
     )
-    data = [rpm_data, speed_data]
 
     graph_layout = dict(
         title='RPM and Speed',
@@ -250,4 +251,41 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
         )
     )
 
-    return dcc.Graph(id='rpm_speed', figure={'data': data, 'layout': graph_layout})
+    return dcc.Graph(id='rpm_speed', figure={'data': [rpm_data, speed_data], 'layout': graph_layout})
+
+
+def get_lon_lat_graph(df: pd.DataFrame) -> dcc.Graph:
+    data = dict(
+        type='scattergeo',
+        locationmode='USA-states',
+        lon=df['lon'],
+        lat=df['lat'],
+        mode='markers',
+        marker=dict(
+            size=8,
+            opacity=0.8,
+            reversescale=True,
+            autocolorscale=False,
+            symbol='square',
+            line=dict(
+                width=1,
+                color='rgb(102, 102, 102)'
+            ),
+        ))
+
+    graph_layout = dict(
+        title='Longitude and Latitude',
+        colorbar=True,
+        geo=dict(
+            scope='usa',
+            projection=dict(type='albers usa'),
+            showland=True,
+            landcolor="rgb(250, 250, 250)",
+            subunitcolor="rgb(217, 217, 217)",
+            countrycolor="rgb(217, 217, 217)",
+            countrywidth=0.5,
+            subunitwidth=0.5
+        ),
+    )
+
+    return dcc.Graph(id='lon_lat', figure={'data': [data], 'layout': graph_layout})

@@ -84,7 +84,7 @@ def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
         sensor_readings['maf'] = random.randrange(10, 20)
         sensor_readings['throttlepos'] = random.randrange(10, 90)
         sensor_readings['lat'] = random.randrange(30, 40)
-        sensor_readings['lon'] = random.randrange(-5, -3)
+        sensor_readings['lon'] = random.randrange(-100, -80)
         sensor_readings['alt'] = random.randrange(40, 50)
         sensor_readings['gpsSpeed'] = random.randrange(30, 140)
         sensor_readings['course'] = random.randrange(100, 180)
