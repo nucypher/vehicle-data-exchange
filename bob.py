@@ -297,8 +297,6 @@ def get_lon_lat_graph(df: pd.DataFrame) -> dcc.Graph:
             landcolor="rgb(250, 250, 250)",
             subunitcolor="rgb(217, 217, 217)",
             countrycolor="rgb(217, 217, 217)",
-            countrywidth=0.5,
-            subunitwidth=0.5
         ),
     )
 
