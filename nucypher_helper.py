@@ -6,6 +6,11 @@ from umbral.kfrags import KFrag
 
 KFRAGS_FILE = "ursula.kfrags"
 
+
+class AccessError(ValueError):
+    pass
+
+
 def grant_access_policy(delgating_privkey, signer, receiving_pubkey, m, n):
     if os.path.exists(KFRAGS_FILE):
         os.remove(KFRAGS_FILE)
@@ -28,8 +33,11 @@ def grant_access_policy(delgating_privkey, signer, receiving_pubkey, m, n):
 
 
 def reencrypt_data(alice_pub_key, bob_pub_key, alice_verify_key, capsule):
-    with open(KFRAGS_FILE) as f:
-        stored_kfrags = json.load(f)
+    try:
+        with open(KFRAGS_FILE) as f:
+            stored_kfrags = json.load(f)
+    except FileNotFoundError as e:
+        raise AccessError("Access Denied")
 
     kfrags = list()
     for kfrag_hex in stored_kfrags:
@@ -43,3 +51,8 @@ def reencrypt_data(alice_pub_key, bob_pub_key, alice_verify_key, capsule):
     for kfrag in kfrags:
         cfrag = pre.reencrypt(kfrag=kfrag, capsule=capsule)
         capsule.attach_cfrag(cfrag)
+
+
+def revoke_access():
+    if os.path.exists(KFRAGS_FILE):
+        os.remove(KFRAGS_FILE)

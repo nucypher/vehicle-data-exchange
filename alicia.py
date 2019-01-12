@@ -2,6 +2,7 @@ import dash_core_components as dcc
 from dash.dependencies import Output, Input, State, Event
 import dash_html_components as html
 import demo_keys
+import nucypher_helper as nh
 import os
 from umbral import config, signing
 from umbral.keys import UmbralPublicKey
@@ -112,8 +113,7 @@ def grant_access(revoke_time, grant_time, days, m, n, recipient_pubkey_hex):
     # create Umbral key for recipient
     recipient_pubkey = UmbralPublicKey.from_bytes(bytes.fromhex(recipient_pubkey_hex))
 
-    import nucypher_helper
-    nucypher_helper.grant_access_policy(alicia_priv_keys['enc'],
+    nh.grant_access_policy(alicia_priv_keys['enc'],
                                         alicia_signer,
                                         recipient_pubkey,
                                         int(m),
@@ -134,5 +134,6 @@ def revoke_access(grant_time, revoke_time):
         # either triggered at start or because grant was executed
         return ''
 
-    # TODO: implement revocation
-    return 'Access revoked to recipient! - Not implemented as yet'
+    nh.revoke_access()  # fake revocation
+
+    return 'Access revoked to recipient!'

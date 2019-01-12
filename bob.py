@@ -14,6 +14,7 @@ from umbral import pre, config
 
 from app import app, DB_FILE, DB_NAME, PROPERTIES
 
+ACCESS_REVOKED = "Access Revoked"
 
 layout = html.Div([
     html.Div([
@@ -52,7 +53,7 @@ layout = html.Div([
             html.Button('Read Measurements', id='read-button', type='submit',
                         className='button button-primary', n_clicks_timestamp='0'),
         ], className='row'),
-        html.Div(children=html.Div(id='measurements'), className='row'),
+        html.Div(id='measurements', className='row'),
         dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
     ], className='row'),
     # Hidden div inside the app that stores previously decrypted measurements
@@ -74,15 +75,14 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
         return None
 
     df = pd.DataFrame()
-    if df_json_latest_measurements is not None:
-        df = pd.read_json(df_json_latest_measurements, convert_dates=False)
-        # sort readings and order by timestamp
-        df = df.sort_values(by='timestamp')
-
     last_timestamp = time.time() - 30  # last 30s
-    if len(df) > 0:
-        # use last timestamp
-        last_timestamp = df['timestamp'].iloc[-1]
+    if (df_json_latest_measurements is not None) and (df_json_latest_measurements != ACCESS_REVOKED):
+        df = pd.read_json(df_json_latest_measurements, convert_dates=False)
+        if len(df) > 0:
+            # sort readings and order by timestamp
+            df = df.sort_values(by='timestamp')
+            # use last timestamp
+            last_timestamp = df['timestamp'].iloc[-1]
 
     db_conn = sqlite3.connect(DB_FILE)
     encrypted_df_readings = pd.read_sql_query('SELECT Timestamp, Data, Capsule '
@@ -90,7 +90,6 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
                                               'WHERE Timestamp > "{}" '
                                               'ORDER BY Timestamp;'
                                               .format(DB_NAME, last_timestamp), db_conn)
-
     for index, row in encrypted_df_readings.iterrows():
         capsule = pre.Capsule.from_bytes(bytes.fromhex(row['Capsule']), params=config.default_params())
         data_ciphertext = bytes.fromhex(row['Data'])
@@ -98,10 +97,15 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
         alicia_pubkeys = demo_keys.get_alicia_pubkeys()
         bob_pubkeys = demo_keys.get_recipient_pubkeys()
         bob_privkeys = demo_keys.get_recipient_privkeys()
-        nucypher_helper.reencrypt_data(alicia_pubkeys['enc'],
-                                       bob_pubkeys['enc'],
-                                       alicia_pubkeys['sig'],
-                                       capsule)
+        try:
+            nucypher_helper.reencrypt_data(alicia_pubkeys['enc'],
+                                           bob_pubkeys['enc'],
+                                           alicia_pubkeys['sig'],
+                                           capsule)
+        except nucypher_helper.AccessError:
+            # unable to re-encrypt data
+            return ACCESS_REVOKED
+
         data_bytes = pre.decrypt(ciphertext=data_ciphertext,
                                  capsule=capsule,
                                  decrypting_key=bob_privkeys['enc'])
@@ -136,6 +140,9 @@ def update_graph(df_json_latest_measurements):
 
     if df_json_latest_measurements is None:
         return divs
+
+    if df_json_latest_measurements == ACCESS_REVOKED:
+        return html.Div('Your access has been revoked!', style={'color': 'red'})
 
     df = pd.read_json(df_json_latest_measurements, convert_dates=False)
     if len(df) == 0:
