@@ -2,6 +2,7 @@ import dash
 import os
 import shutil
 from nucypher_helper import KFRAGS_FOLDER
+from demo_keys import KEYS_FOLDER
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -12,6 +13,10 @@ app.config.suppress_callback_exceptions = True
 # remove old kfrag files and re-create folder
 shutil.rmtree(KFRAGS_FOLDER, ignore_errors=True)
 os.mkdir(KFRAGS_FOLDER)
+
+# remove old key files and re-create folder
+shutil.rmtree(KEYS_FOLDER, ignore_errors=True)
+os.mkdir(KEYS_FOLDER)
 
 # remove old data files and re-create folder
 shutil.rmtree('./data', ignore_errors=True)

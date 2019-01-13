@@ -1,4 +1,5 @@
 # ignore json files
+keys
 *.json
 
 # ignore kfrags files

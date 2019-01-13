@@ -5,6 +5,7 @@ from dash_table_experiments import DataTable
 import demo_keys
 import json
 import nucypher_helper
+import os
 import pandas as pd
 from plotly.graph_objs import Scatter
 from plotly.graph_objs.layout import Margin
@@ -14,71 +15,84 @@ from umbral import pre, config
 
 from app import app, DB_FILE, DB_NAME, PROPERTIES
 
-ACCESS_REVOKED = "Access Revoked"
+ACCESS_REVOKED = "Access Disallowed"
 
-layout = html.Div([
-    html.Div([
-        html.Img(src='./assets/nucypher_logo.png'),
-    ], className='banner'),
-    html.Div([
+
+def get_layout():
+    unique_id = os.urandom(4).hex()
+
+    layout = html.Div([
         html.Div([
-            html.Div([
-                html.Img(src='./assets/bob.png'),
-            ], className='two columns'),
+            html.Img(src='./assets/nucypher_logo.png'),
+        ], className='banner'),
+        html.Div([
             html.Div([
                 html.Div([
-                    html.H2('INSURER BOB'),
-                    html.P(
-                        "Bob is Alicia's Insurer and will be granted access by Alicia "
-                        "to access the encrypted vehicle data database and requests a re-encrypted ciphertext for "
-                        "each set of timed measurements, which can then be decrypted using the Insurer's "
-                        "private key."),
-                ], className="row")
-            ], className='five columns'),
-        ], className='row'),
-    ], className='app_name'),
-    html.Hr(),
-    html.Button('Generate Key Pair',
-                id='gen-key-button',
-                type='submit',
-                className='button button-primary'),
-    html.Div([
-        html.Div('Public Key:', className='two columns'),
-        html.Div(id='pub-key', className='seven columns'),
-    ], className='row'),
-    html.Hr(),
-    html.Div([
-        html.H3('Vehicle Data from Encrypted DB'),
+                    html.Img(src='./assets/bob.png'),
+                ], className='two columns'),
+                html.Div([
+                    html.Div([
+                        html.H2('INSURER BOB'),
+                        html.P(
+                            "Bob is Alicia's Insurer and will be granted access by Alicia "
+                            "to access the encrypted vehicle data database and requests a re-encrypted ciphertext for "
+                            "each set of timed measurements, which can then be decrypted using the Insurer's "
+                            "private key."),
+                    ], className="row")
+                ], className='five columns'),
+            ], className='row'),
+        ], className='app_name'),
+        html.Hr(),
         html.Div([
-            html.Button('Read Measurements', id='read-button', type='submit',
-                        className='button button-primary', n_clicks_timestamp='0'),
+            html.H3('Properties'),
+            html.Div([
+                html.Div('Unique Bob Id:', className='two columns'),
+                html.Div(id='bob-unique-id', children='{}'.format(unique_id), className='one column'),
+            ], className='row'),
+            html.Br(),
+            html.Button('Generate Key Pair',
+                        id='gen-key-button',
+                        type='submit',
+                        className='button button-primary'),
+            html.Div([
+                html.Div('Public Key:', className='two columns'),
+                html.Div(id='pub-key', className='seven columns'),
+            ], className='row'),
+        ]),
+        html.Hr(),
+        html.Div([
+            html.H3('Vehicle Data from Encrypted DB'),
+            html.Div([
+                html.Button('Read Measurements', id='read-button', type='submit',
+                            className='button button-primary', n_clicks_timestamp='0'),
+            ], className='row'),
+            html.Div(id='measurements', className='row'),
+            dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
         ], className='row'),
-        html.Div(id='measurements', className='row'),
-        dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
-    ], className='row'),
-    # Hidden div inside the app that stores previously decrypted measurements
-    html.Div(id='latest-decrypted-measurements', style={'display': 'none'})
-])
+        # Hidden div inside the app that stores previously decrypted measurements
+        html.Div(id='latest-decrypted-measurements', style={'display': 'none'}),
+    ])
+
+    return layout
 
 
 @app.callback(
     Output('latest-decrypted-measurements', 'children'),
     [],
     [State('read-button', 'n_clicks_timestamp'),
-     State('latest-decrypted-measurements', 'children')],
+     State('latest-decrypted-measurements', 'children'),
+     State('bob-unique-id', 'children')],
     [Event('measurements-update', 'interval'),
      Event('read-button', 'click')]
 )
-def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurements):
+def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurements, bob_id):
     if int(read_time) == 0:
         # button never clicked but triggered by interval
         return None
 
     df = pd.DataFrame()
-    last_timestamp = time.time() - 30  # last 30s
-    if df_json_latest_measurements == ACCESS_REVOKED:
-        last_timestamp = time.time() - 5  # last 5s (don't bother re-encrypting last 30s of data - settle for last 5s)
-    elif df_json_latest_measurements is not None:
+    last_timestamp = time.time() - 5  # last 5s
+    if (df_json_latest_measurements is not None) and (df_json_latest_measurements != ACCESS_REVOKED):
         df = pd.read_json(df_json_latest_measurements, convert_dates=False)
         if len(df) > 0:
             # sort readings and order by timestamp
@@ -97,8 +111,8 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
         data_ciphertext = bytes.fromhex(row['Data'])
 
         alicia_pubkeys = demo_keys.get_alicia_pubkeys()
-        bob_pubkeys = demo_keys.get_recipient_pubkeys()
-        bob_privkeys = demo_keys.get_recipient_privkeys()
+        bob_pubkeys = demo_keys.get_recipient_pubkeys(bob_id)
+        bob_privkeys = demo_keys.get_recipient_privkeys(bob_id)
         try:
             nucypher_helper.reencrypt_data(alicia_pubkeys['enc'],
                                            bob_pubkeys['enc'],
@@ -126,10 +140,12 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
 
 @app.callback(
     Output('pub-key', 'children'),
-    events=[Event('gen-key-button', 'click')]
+    [],
+    [State('bob-unique-id', 'children')],
+    [Event('gen-key-button', 'click')]
 )
-def gen_pubkey():
-    bob_pubkeys = demo_keys.get_recipient_pubkeys()
+def gen_pubkey(bob_id):
+    bob_pubkeys = demo_keys.get_recipient_pubkeys(bob_id)
     return bob_pubkeys['enc'].to_bytes().hex()
 
 
@@ -144,7 +160,7 @@ def update_graph(df_json_latest_measurements):
         return divs
 
     if df_json_latest_measurements == ACCESS_REVOKED:
-        return html.Div('Your access has been revoked!', style={'color': 'red'})
+        return html.Div('Your access has either not been granted or has been revoked!', style={'color': 'red'})
 
     df = pd.read_json(df_json_latest_measurements, convert_dates=False)
     if len(df) == 0:
