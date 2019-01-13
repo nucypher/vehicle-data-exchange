@@ -76,7 +76,9 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
 
     df = pd.DataFrame()
     last_timestamp = time.time() - 30  # last 30s
-    if (df_json_latest_measurements is not None) and (df_json_latest_measurements != ACCESS_REVOKED):
+    if df_json_latest_measurements == ACCESS_REVOKED:
+        last_timestamp = time.time() - 5  # last 5s (don't bother re-encrypting last 30s of data - settle for last 5s)
+    elif df_json_latest_measurements is not None:
         df = pd.read_json(df_json_latest_measurements, convert_dates=False)
         if len(df) > 0:
             # sort readings and order by timestamp

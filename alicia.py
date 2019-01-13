@@ -52,8 +52,8 @@ layout = html.Div([
             dcc.Input(id='n-value', value='3', type='number', className='two columns'),
         ], className='row'),
         html.Div([
-            html.Div('Recipient Public Key: ', className='two columns'),
-            dcc.Input(id='recipient-pub-key', type='text', className='seven columns'),
+            html.Div('Grant Recipient Public Key: ', className='two columns'),
+            dcc.Input(id='recipient-pub-key-grant', type='text', className='seven columns'),
         ], className='row'),
         html.Div([
             html.Button('Grant Access', id='grant-button', type='submit',
@@ -61,6 +61,10 @@ layout = html.Div([
             html.Div(id='grant-response'),
         ], className='row'),
         html.Br(),
+        html.Div([
+            html.Div('Revoke Recipient Public Key: ', className='two columns'),
+            dcc.Input(id='recipient-pub-key-revoke', type='text', className='seven columns'),
+        ], className='row'),
         html.Div([
             html.Button('Revoke Access', id='revoke-button', type='submit',
                         className='button button-primary', n_clicks_timestamp='0'),
@@ -91,7 +95,7 @@ def create_policy():
      State('days', 'value'),
      State('m-value', 'value'),
      State('n-value', 'value'),
-     State('recipient-pub-key', 'value')],
+     State('recipient-pub-key-grant', 'value')],
     [Event('grant-button', 'click'),
      Event('revoke-button', 'click')]
 )
@@ -114,10 +118,10 @@ def grant_access(revoke_time, grant_time, days, m, n, recipient_pubkey_hex):
     recipient_pubkey = UmbralPublicKey.from_bytes(bytes.fromhex(recipient_pubkey_hex))
 
     nh.grant_access_policy(alicia_priv_keys['enc'],
-                                        alicia_signer,
-                                        recipient_pubkey,
-                                        int(m),
-                                        int(n))
+                           alicia_signer,
+                           recipient_pubkey,
+                           int(m),
+                           int(n))
 
     return 'Access granted to recipient with public key: {}!'.format(recipient_pubkey_hex)
 
@@ -125,15 +129,16 @@ def grant_access(revoke_time, grant_time, days, m, n, recipient_pubkey_hex):
 @app.callback(
     Output('revoke-response', 'children'),
     [Input('grant-button', 'n_clicks_timestamp')],
-    [State('revoke-button', 'n_clicks_timestamp')],
+    [State('revoke-button', 'n_clicks_timestamp'),
+     State('recipient-pub-key-revoke', 'value')],
     [Event('revoke-button', 'click'),
      Event('grant-button', 'click')]
 )
-def revoke_access(grant_time, revoke_time):
+def revoke_access(grant_time, revoke_time, recipient_pubkey_hex):
     if int(grant_time) >= int(revoke_time):
         # either triggered at start or because grant was executed
         return ''
 
-    nh.revoke_access()  # fake revocation
+    nh.revoke_access(recipient_pubkey_hex)  # fake revocation
 
-    return 'Access revoked to recipient!'
+    return 'Access revoked to recipient with public key {}!'.format(recipient_pubkey_hex)

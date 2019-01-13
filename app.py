@@ -1,6 +1,7 @@
 import dash
 import os
 import shutil
+from nucypher_helper import KFRAGS_FOLDER
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -8,7 +9,11 @@ app = dash.Dash("NuCypher Vehicular Data Sharing Application", external_styleshe
 server = app.server
 app.config.suppress_callback_exceptions = True
 
-# remove old data files and re-create data folder
+# remove old kfrag files and re-create folder
+shutil.rmtree(KFRAGS_FOLDER, ignore_errors=True)
+os.mkdir(KFRAGS_FOLDER)
+
+# remove old data files and re-create folder
 shutil.rmtree('./data', ignore_errors=True)
 os.mkdir("./data")
 
@@ -24,7 +29,7 @@ PROPERTIES = {'engineOn': 'Engine Status',
               'throttlepos': 'Throttle Position (%)',
               'lat': 'Latitude (°)',
               'lon': 'Longitude (°)',
-              'alt': 'Alternator',
+              'alt': 'Alternator Voltage',
               'gpsSpeed': 'GPS Speed',
               'course': 'Course',
               'gpsTime': "GPS Timestamp"
