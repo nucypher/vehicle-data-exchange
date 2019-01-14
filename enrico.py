@@ -3,12 +3,24 @@ from dash_table_experiments import DataTable
 import dash_core_components as dcc
 import dash_html_components as html
 import json
+import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
+import paho.mqtt.subscribe as subscribe
 import pandas as pd
+import random
 import sqlite3
 import time
+from umbral import pre
+from umbral.keys import UmbralPublicKey
 
 from app import app, DB_FILE, DB_NAME
-import car_session
+
+MQTT_USERNAME = '10288942'
+MQTT_PASSWD = '184def19b4bbb41a'
+MQTT_HOST = "broker.shiftr.io"
+MQTT_PORT = 1883
+MQTT_TOPIC = '/Alicia_Car_Data'
+
 
 layout = html.Div([
     html.Div([
@@ -38,7 +50,7 @@ layout = html.Div([
         dcc.Input(id='policy-pub-key', type='text', className='seven columns'),
         html.Button('Start Monitoring', id='generate-button', type='submit',
                     className="button button-primary", n_clicks_timestamp='0'),
-        #dcc.Interval(id='gen-sensor-update', interval=1000, n_intervals=0),
+        dcc.Interval(id='gen-sensor-update', interval=1000, n_intervals=0),
     ], className='row'),
     html.Hr(),
     html.Div([
@@ -59,20 +71,25 @@ layout = html.Div([
     [State('generate-button', 'n_clicks_timestamp'),
      State('policy-pub-key', 'value'),
      State('cached-last-readings', 'children')],
-    [#Event('gen-sensor-update', 'interval'),
+    [Event('gen-sensor-update', 'interval'),
      Event('generate-button', 'click')]
 )
 def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
     if int(gen_time) == 0:
         # button has not been clicked as yet or interval triggered before click
+        if policy_pubkey_hex != None:
+            publish.single(MQTT_TOPIC+'/public_key', bytes.fromhex(policy_pubkey_hex), hostname=MQTT_HOST,auth={'username': MQTT_USERNAME, 'password': MQTT_PASSWD})
         return None
 
-    pub_key_bytes = bytes.fromhex(policy_pubkey_hex)
-    latest_readings = car_session.reproduce_stored_session(pub_key_bytes,
-                                                           save_as_file=True,
-                                                           store_in_db=True,
-                                                           send_by_mqtt=False)
-    return latest_readings
+
+    car_data_entry = json.loads(bytes(subscribe.simple (MQTT_TOPIC, hostname=MQTT_HOST,auth={'username': MQTT_USERNAME, 'password': MQTT_PASSWD}).payload))
+
+    # add new vehicle data
+    db_conn = sqlite3.connect(DB_FILE)
+    df.to_sql(name=DB_NAME, con=db_conn, index=False, if_exists='append')
+
+    print('Added vehicle sensor readings to db ')
+    return "Encrypted" #latest_readings
 
 
 @app.callback(
