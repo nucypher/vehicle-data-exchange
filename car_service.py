@@ -71,121 +71,121 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
         client.publish(MQTT_TOPIC+"/public_key", pub_key_bytes)
         client.publish(MQTT_TOPIC+"/data_source_public_key", data_source_public_key)
 
+    while (True):
+        try:
+            if from_session:
+                    # everytime that engine stop and start during session saving, new trip is created
+                    for trip in tripCurs.execute("SELECT * FROM trip"):
+                        start = trip[1]
+                        end = trip[2]
 
-    try:
-        if from_session:
-                # everytime that engine stop and start during session saving, new trip is created
-                for trip in tripCurs.execute("SELECT * FROM trip"):
-                    start = trip[1]
-                    end = trip[2]
+                        nextTime = None
 
-                    nextTime = None
+                        for gpsRow in gpsCurs.execute("SELECT * FROM gps WHERE time>=(?) AND time<(?)",(start,end)):
+                            # if this is not the first iteration...
+                            if nextTime != None:
+                                currentTime = nextTime
+                                nextTime = gpsRow[6]
 
-                    for gpsRow in gpsCurs.execute("SELECT * FROM gps WHERE time>=(?) AND time<(?)",(start,end)):
-                        # if this is not the first iteration...
-                        if nextTime != None:
-                            currentTime = nextTime
-                            nextTime = gpsRow[6]
+                                # time difference between two samples
+                                diff = nextTime - currentTime
 
-                            # time difference between two samples
-                            diff = nextTime - currentTime
+                                # sleep the thread: simulating gps signal delay
+                                time.sleep(diff)
 
-                            # sleep the thread: simulating gps signal delay
-                            time.sleep(diff)
+                                # take the same sample from obd table
+                                obdCurs.execute("SELECT * FROM obd WHERE time=(?)",(currentTime,))
+                                obdRow = obdCurs.fetchone()
 
-                            # take the same sample from obd table
-                            obdCurs.execute("SELECT * FROM obd WHERE time=(?)",(currentTime,))
-                            obdRow = obdCurs.fetchone()
+                                # obtained information about OBDII & GPS from sessions database
+                                temp = int(obdRow[0])
+                                rpm = int(obdRow[1])
+                                vss = int(obdRow[2])
+                                maf = obdRow[3]
+                                throttlepos = obdRow[4]
+                                lat = gpsRow[0]
+                                lon = gpsRow[1]
+                                alt = gpsRow[2]
+                                gpsSpeed = gpsRow[3]
+                                course = int(gpsRow[4])
+                                gpsTime = int(gpsRow[5])
 
-                            # obtained information about OBDII & GPS from sessions database
-                            temp = int(obdRow[0])
-                            rpm = int(obdRow[1])
-                            vss = int(obdRow[2])
-                            maf = obdRow[3]
-                            throttlepos = obdRow[4]
-                            lat = gpsRow[0]
-                            lon = gpsRow[1]
-                            alt = gpsRow[2]
-                            gpsSpeed = gpsRow[3]
-                            course = int(gpsRow[4])
-                            gpsTime = int(gpsRow[5])
+                                car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
 
-                            car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
+                                print (car_data)
 
-                            print (car_data)
+                                timestamp = time.time()
 
-                            timestamp = time.time()
+                                if kms:
+                                    plaintext = msgpack.dumps(car_data, use_bin_type=True)
+                                    message_kit, _signature = data_source.encrypt_message(plaintext)
 
-                            if kms:
-                                plaintext = msgpack.dumps(car_data, use_bin_type=True)
-                                message_kit, _signature = data_source.encrypt_message(plaintext)
+                                    kit_bytes = message_kit.to_bytes()
+                                    kits.append(kit_bytes)
 
-                                kit_bytes = message_kit.to_bytes()
-                                kits.append(kit_bytes)
+                                    car_data_entry = {
+                                        'Timestamp': [timestamp],
+                                        'Data': [kit_bytes.hex()]
+                                    }
 
-                                car_data_entry = {
-                                    'Timestamp': [timestamp],
-                                    'Data': [kit_bytes.hex()]
-                                }
+                                else:
+                                    latest_readings = json.dumps(car_data)
+                                    # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
+                                    ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
 
-                            else:
-                                latest_readings = json.dumps(car_data)
-                                # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
-                                ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
+                                    car_data_entry = {
+                                        'Timestamp': [timestamp],
+                                        'Data': [ciphertext.hex()],
+                                        'Capsule': [capsule.to_bytes().hex()]
+                                    }
 
-                                car_data_entry = {
-                                    'Timestamp': [timestamp],
-                                    'Data': [ciphertext.hex()],
-                                    'Capsule': [capsule.to_bytes().hex()]
-                                }
-
-                            if send_by_mqtt:
-                                client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
-
-        else:
-            vss = connection.query(obd.commands.SPEED).value.magnitude # send the command, and parse the response
-            rpm = connection.query(obd.commands.RPM).value.magnitude
-            maf = connection.query(obd.commands.MAF).value.magnitude
-            throttlepos = connection.query(obd.commands.THROTTLE_POS).value.magnitude
-            temp = connection.query(obd.commands.COOLANT_TEMP).value.magnitude
-            lat = 99.0
-            lon = 99.0
-            alt = 99
-            course = 99
-            gpsTime = 999999
-            gpsSpeed = 99
-
-            car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
-
-            print (car_data)
-
-            timestamp = time.time()
-
-            if kms:
-                plaintext = msgpack.dumps(car_data, use_bin_type=True)
-                message_kit, _signature = data_source.encrypt_message(plaintext)
-
-                kit_bytes = message_kit.to_bytes()
-                kits.append(kit_bytes)
-
-                car_data_entry = {
-                    'Timestamp': [timestamp],
-                    'Data': [kit_bytes.hex()]
-                }
+                                if send_by_mqtt:
+                                    client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
 
             else:
-                latest_readings = json.dumps(car_data)
-                # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
-                ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
+                vss = connection.query(obd.commands.SPEED).value.magnitude # send the command, and parse the response
+                rpm = connection.query(obd.commands.RPM).value.magnitude
+                maf = connection.query(obd.commands.MAF).value.magnitude
+                throttlepos = connection.query(obd.commands.THROTTLE_POS).value.magnitude
+                temp = connection.query(obd.commands.COOLANT_TEMP).value.magnitude
+                lat = 99.0
+                lon = 99.0
+                alt = 99
+                course = 99
+                gpsTime = 999999
+                gpsSpeed = 99
 
-                car_data_entry = {
-                    'Timestamp': [timestamp],
-                    'Data': [ciphertext.hex()],
-                    'Capsule': [capsule.to_bytes().hex()]
-                }
+                car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
 
-            if send_by_mqtt:
-                client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
+                print (car_data)
+
+                timestamp = time.time()
+
+                if kms:
+                    plaintext = msgpack.dumps(car_data, use_bin_type=True)
+                    message_kit, _signature = data_source.encrypt_message(plaintext)
+
+                    kit_bytes = message_kit.to_bytes()
+                    kits.append(kit_bytes)
+
+                    car_data_entry = {
+                        'Timestamp': [timestamp],
+                        'Data': [kit_bytes.hex()]
+                    }
+
+                else:
+                    latest_readings = json.dumps(car_data)
+                    # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
+                    ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
+
+                    car_data_entry = {
+                        'Timestamp': [timestamp],
+                        'Data': [ciphertext.hex()],
+                        'Capsule': [capsule.to_bytes().hex()]
+                    }
+
+                if send_by_mqtt:
+                    client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
 
 
     # if receive terminal signal
