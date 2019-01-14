@@ -217,6 +217,7 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
             print(plaintext)
         except Exception as e:
             print(str(e))
+            continue
 
         readings = plaintext['carInfo']
         readings['timestamp'] = row['Timestamp']
