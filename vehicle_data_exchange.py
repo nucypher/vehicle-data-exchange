@@ -1,3 +1,7 @@
+import shutil
+shutil.rmtree("./alicia-files", ignore_errors=True)
+shutil.rmtree("./bob-files", ignore_errors=True)
+
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output

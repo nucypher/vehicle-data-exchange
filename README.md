@@ -20,6 +20,13 @@ Install dependencies (only for the first time):
 $ pipenv install --dev --three --skip-lock --pre
 ```
 
+Run a local NuCypher node in a separate terminal:
+```sh
+$ pipenv shell
+
+(vehicle-data-exchange)$ nucypher ursula run --dev --debug --federated-only
+```
+
 Run the demo:
 ```sh
 $ pipenv shell
@@ -27,4 +34,4 @@ $ pipenv shell
 (nucypher)$ python vehicle_data_exchange.py
 ```
 
-* The characters can be viewed at [http://127.0.0.1:8050/](http://127.0.0.1:8050/)
+Now you can interact with the demo at [http://127.0.0.1:8050/](http://127.0.0.1:8050/)
