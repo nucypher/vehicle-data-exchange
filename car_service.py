@@ -46,6 +46,19 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
     
     # Message kits list
     kits = list()
+
+    # Load data from saved session
+    if from_session:
+        # Connection to saved session database
+        db=sqlite3.connect(sessionPath)
+        tripCurs = db.cursor()
+        gpsCurs = db.cursor()
+        obdCurs = db.cursor()
+        
+    # Load data from connected obd2 interface
+    else:
+        connection = obd.OBD() # auto-connects to USB or RF port
+
     
     if send_by_mqtt:
 
