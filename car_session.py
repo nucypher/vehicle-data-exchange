@@ -10,7 +10,7 @@ from umbral.keys import UmbralPublicKey
 pub_key_bytes = b'\x03\x07a\xebt|&\x8d\xb6\xb7\xd5b\xf1\x8f\xe1,\xf9n1\xa7\xcf\xe0\xec\xff~E\xdd\x8c.\x8bB\xe4\xbd'
 
 DATA_FILENAME = 'car_data.msgpack'
-RECORDED_CAR_SESSION = "UMA-5_10_17-Simulation.db"
+RECORDED_CAR_SESSION = "UMA-5_10_17-session.db"
 
 MQTT_USERNAME = '10288942'
 MQTT_PASSWD = '184def19b4bbb41a'
