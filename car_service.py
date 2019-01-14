@@ -83,6 +83,7 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
 
                         for gpsRow in gpsCurs.execute("SELECT * FROM gps WHERE time>=(?) AND time<(?)",(start,end)):
                             # if this is not the first iteration...
+
                             if nextTime != None:
                                 currentTime = nextTime
                                 nextTime = gpsRow[6]
@@ -141,6 +142,8 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
 
                                 if send_by_mqtt:
                                     client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
+                            else:				
+                                nextTime = gpsRow[6]
 
             else:
                 vss = connection.query(obd.commands.SPEED).value.magnitude # send the command, and parse the response
