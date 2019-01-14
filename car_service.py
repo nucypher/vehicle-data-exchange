@@ -94,6 +94,8 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
 
             print (car_data)
 
+            timestamp = time.time()
+
             if kms:
                 plaintext = msgpack.dumps(car_data, use_bin_type=True)
                 message_kit, _signature = data_source.encrypt_message(plaintext)
@@ -101,15 +103,15 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
                 kit_bytes = message_kit.to_bytes()
                 kits.append(kit_bytes)
 
-                if send_by_mqtt:
-                    client.publish(MQTT_TOPIC, kit_bytes)
+                car_data_entry = {
+                    'Timestamp': [timestamp],
+                    'EncryptedData': [kit_bytes.hex()]
+                }
 
             else:
                 latest_readings = json.dumps(car_data)
                 # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
                 ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
-                
-                timestamp = time.time()
 
                 car_data_entry = {
                     'Timestamp': [timestamp],
@@ -117,8 +119,8 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
                     'Capsule': [capsule.to_bytes().hex()]
                 }
 
-                if send_by_mqtt:
-                    client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
+            if send_by_mqtt:
+                client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
 
     # if receive terminal signal
     except ServiceExit:
