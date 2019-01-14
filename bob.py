@@ -194,7 +194,8 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
     encrypted_df_readings = pd.read_sql_query('SELECT Timestamp, EncryptedData '
                                               'FROM {} '
                                               #'WHERE Timestamp > "{}" '
-                                              'ORDER BY Timestamp;'
+                                              'ORDER BY Timestamp '
+                                              'LIMIT 30;'
                                               .format(DB_NAME), #, last_timestamp),
                                               db_conn)
 
