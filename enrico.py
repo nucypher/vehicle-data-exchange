@@ -10,6 +10,7 @@ import pandas as pd
 import random
 import sqlite3
 import time
+import msgpack
 from umbral import pre
 from umbral.keys import UmbralPublicKey
 
@@ -79,6 +80,10 @@ def generate_vehicular_data(gen_time, policy_pubkey_hex, last_readings):
         # button has not been clicked as yet or interval triggered before click
         if policy_pubkey_hex != None:
             publish.single(MQTT_TOPIC+'/public_key', bytes.fromhex(policy_pubkey_hex), hostname=MQTT_HOST,auth={'username': MQTT_USERNAME, 'password': MQTT_PASSWD})
+            datasource_public_key = bytes(subscribe.simple (MQTT_TOPIC+'/data_source_public_key', hostname=MQTT_HOST,auth={'username': MQTT_USERNAME, 'password': MQTT_PASSWD}).payload)
+            file = open('datasource_public_key','w')
+            file.write(datasource_public_key.hex())
+            file.close()
         return None
 
     # timestamp = time.time()

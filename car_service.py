@@ -68,7 +68,7 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
         client.connect(MQTT_HOST, MQTT_PORT, 60)
 
         # Communication is starting: send public key
-        client.publish(MQTT_TOPIC+"/public_key", pub_key_bytes)
+        #client.publish(MQTT_TOPIC+"/public_key", pub_key_bytes)
         client.publish(MQTT_TOPIC+"/data_source_public_key", data_source_public_key)
 
     while (True):

@@ -132,7 +132,7 @@ def get_layout():
                             className='button button-primary', n_clicks_timestamp='0'),
             ], className='row'),
             html.Div(id='measurements', className='row'),
-            #dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
+            dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
         ], className='row'),
         # Hidden div inside the app that stores previously decrypted measurements
         html.Div(id='latest-decrypted-measurements', style={'display': 'none'}),
@@ -163,12 +163,16 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
     alices_sig_pubkey = UmbralPublicKey.from_bytes(bytes.fromhex(policy_data["alice_sig_pubkey"]))
     label = policy_data["label"].encode()
 
-    source_metadata = msgpack.load(open("car_data.msgpack", "rb"), raw=False)
+    #source_metadata = msgpack.load(open("datasource_public_key.msgpack", "rb"), raw=False)
+    file = open('datasource_public_key','r')
+    source_metadata_hex = file.read()
+    print('BOB:'+source_metadata_hex)
 
+    file.close()
     # The bob also needs to create a view of the Data Source from its public keys
     data_source = DataSource.from_public_keys(
         policy_public_key=policy_pubkey,
-        datasource_public_key=source_metadata['data_source'],
+        datasource_public_key=bytes.fromhex(source_metadata_hex),
         label=label
     )
 
