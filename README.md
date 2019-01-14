@@ -20,6 +20,7 @@ Install dependencies (only for the first time):
 $ pipenv install --dev --three --skip-lock --pre
 ```
 
+The code for the NuCypher can be obtained from [fix-demo](https://github.com/cygnusv/nucypher/tree/fix-demo)
 Run a local NuCypher node in a separate terminal:
 ```sh
 $ pipenv shell
