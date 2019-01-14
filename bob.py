@@ -132,7 +132,7 @@ def get_layout():
                             className='button button-primary', n_clicks_timestamp='0'),
             ], className='row'),
             html.Div(id='measurements', className='row'),
-            dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
+            #dcc.Interval(id='measurements-update', interval=1000, n_intervals=0),
         ], className='row'),
         # Hidden div inside the app that stores previously decrypted measurements
         html.Div(id='latest-decrypted-measurements', style={'display': 'none'}),
@@ -147,7 +147,7 @@ def get_layout():
     [State('read-button', 'n_clicks_timestamp'),
      State('latest-decrypted-measurements', 'children'),
      State('bob-unique-id', 'children')],
-    [Event('measurements-update', 'interval'),
+    [#Event('measurements-update', 'interval'),
      Event('read-button', 'click')]
 )
 def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurements, bob_id):
