@@ -238,6 +238,4 @@ def revoke_access(grant_time, revoke_time, recipient_pubkey_hex):
         # either triggered at start or because grant was executed
         return ''
 
-    nh.revoke_access(recipient_pubkey_hex)  # fake revocation
-
-    return 'Access revoked to recipient with public key {}!'.format(recipient_pubkey_hex)
+    return 'Access revoked to recipient with public key {}! - Not implemented as yet'.format(recipient_pubkey_hex)
