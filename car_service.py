@@ -1,3 +1,4 @@
+import argparse
 import random
 import time
 import signal
@@ -15,6 +16,9 @@ from umbral.keys import UmbralPublicKey
 
 # pub_key_bytes = b'\x03\x07a\xebt|&\x8d\xb6\xb7\xd5b\xf1\x8f\xe1,\xf9n1\xa7\xcf\xe0\xec\xff~E\xdd\x8c.\x8bB\xe4\xbd'
 
+# path of session database file
+sessionPath = "UMA-5_10_17-session.db"
+
 DATA_FILENAME = 'car_data.msgpack'
 MQTT_USERNAME = '10288942'
 MQTT_PASSWD = '184def19b4bbb41a'
@@ -31,7 +35,7 @@ class ServiceExit(Exception):
     pass
 
 
-def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_file: bool = False, send_by_mqtt: bool = False, obd: bool = True, gps: bool = True, kms: bool = True ):
+def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_file: bool = False, send_by_mqtt: bool = False, from_session: bool = True, kms: bool = True ):
 
     # register the signal handlers for interrupting the execution
     signal.signal(signal.SIGTERM, service_shutdown)
@@ -56,39 +60,87 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
 
 
     try:
-        if obd:
-            connection = obd.OBD() # auto-connects to USB or RF port
+        if from_session:
+                # everytime that engine stop and start during session saving, new trip is created
+                for trip in tripCurs.execute("SELECT * FROM trip"):
+                    start = trip[1]
+                    end = trip[2]
 
-        while (True):
-            time.sleep(0.5)
-            if obd:
-                vss = connection.query(obd.commands.SPEED).value.magnitude # send the command, and parse the response
-                rpm = connection.query(obd.commands.RPM).value.magnitude
-                maf = connection.query(obd.commands.MAF).value.magnitude
-                throttlepos = connection.query(obd.commands.THROTTLE_POS).value.magnitude
-                temp = connection.query(obd.commands.COOLANT_TEMP).value.magnitude
-            else:
-                vss = 0
-                rpm = 0
-                maf = 0
-                throttlepos = 0
-                temp = 0
+                    nextTime = None
 
-            if gps:
-                print ("REAL TIME GPS DATA NOT YET IMPLEMENTED")
-                lat = 4.0
-                lon = 31.0
-                alt = 100
-                course = 34
-                gpsTime = 110020
-                gpsSpeed = 99
-            else:
-                lat = 4.0
-                lon = 31.0
-                alt = 100
-                course = 34
-                gpsTime = 110020
-                gpsSpeed = 99
+                    for gpsRow in gpsCurs.execute("SELECT * FROM gps WHERE time>=(?) AND time<(?)",(start,end)):
+                        # if this is not the first iteration...
+                        if nextTime != None:
+                            currentTime = nextTime
+                            nextTime = gpsRow[6]
+
+                            # time difference between two samples
+                            diff = nextTime - currentTime
+
+                            # sleep the thread: simulating gps signal delay
+                            time.sleep(diff)
+
+                            # take the same sample from obd table
+                            obdCurs.execute("SELECT * FROM obd WHERE time=(?)",(currentTime,))
+                            obdRow = obdCurs.fetchone()
+
+                            # obtained information about OBDII & GPS from sessions database
+                            temp = int(obdRow[0])
+                            rpm = int(obdRow[1])
+                            vss = int(obdRow[2])
+                            maf = obdRow[3]
+                            throttlepos = obdRow[4]
+                            lat = gpsRow[0]
+                            lon = gpsRow[1]
+                            alt = gpsRow[2]
+                            gpsSpeed = gpsRow[3]
+                            course = int(gpsRow[4])
+                            gpsTime = int(gpsRow[5])
+
+                            car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
+
+                            print (car_data)
+
+                            timestamp = time.time()
+
+                            if kms:
+                                plaintext = msgpack.dumps(car_data, use_bin_type=True)
+                                message_kit, _signature = data_source.encrypt_message(plaintext)
+
+                                kit_bytes = message_kit.to_bytes()
+                                kits.append(kit_bytes)
+
+                                car_data_entry = {
+                                    'Timestamp': [timestamp],
+                                    'Data': [kit_bytes.hex()]
+                                }
+
+                            else:
+                                latest_readings = json.dumps(car_data)
+                                # policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey)
+                                ciphertext, capsule = pre.encrypt(policy_pubkey, latest_readings.encode('utf-8'))
+
+                                car_data_entry = {
+                                    'Timestamp': [timestamp],
+                                    'Data': [ciphertext.hex()],
+                                    'Capsule': [capsule.to_bytes().hex()]
+                                }
+
+                            if send_by_mqtt:
+                                client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
+
+        else:
+            vss = connection.query(obd.commands.SPEED).value.magnitude # send the command, and parse the response
+            rpm = connection.query(obd.commands.RPM).value.magnitude
+            maf = connection.query(obd.commands.MAF).value.magnitude
+            throttlepos = connection.query(obd.commands.THROTTLE_POS).value.magnitude
+            temp = connection.query(obd.commands.COOLANT_TEMP).value.magnitude
+            lat = 99.0
+            lon = 99.0
+            alt = 99
+            course = 99
+            gpsTime = 999999
+            gpsSpeed = 99
 
             car_data = {"carInfo": {"engineOn":True, "temp":temp, "rpm":rpm, "vss":vss, "maf":maf, "throttlepos":throttlepos, "lat":lat, "lon":lon, "alt":alt, "gpsSpeed":gpsSpeed, "course":course, "gpsTime":gpsTime} }
 
@@ -122,6 +174,7 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
             if send_by_mqtt:
                 client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
 
+
     # if receive terminal signal
     except ServiceExit:
         print("Terminal Signal received")
@@ -145,7 +198,11 @@ def service_shutdown(signum, frame):
 
 # Only for developing and testing purpouses. Comment if you call the functions from other script
 if __name__ == "__main__":
-    
+
+    parser = argparse.ArgumentParser(description='Run car service')
+    parser.add_argument('-session', action ='store_true', help = 'This fakes the ODBII data by loading a recorder session')
+    args = parser.parse_args()
+
     pub_key_bytes = bytes(subscribe.simple (MQTT_TOPIC+'/public_key', hostname=MQTT_HOST,auth={'username': MQTT_USERNAME, 'password': MQTT_PASSWD}).payload)
 
     print ('pub_key received')
@@ -153,4 +210,4 @@ if __name__ == "__main__":
 
     pub_key = UmbralPublicKey.from_bytes(pub_key_bytes)
 
-    send_real_time_data(pub_key, save_as_file = True, send_by_mqtt = True, obd = False, gps = False)
+    send_real_time_data(pub_key, save_as_file = True, send_by_mqtt = True, from_session = args.session)
