@@ -31,7 +31,7 @@ class ServiceExit(Exception):
     pass
 
 
-def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_file: bool = False, send_by_mqtt: bool = False, obd: bool = True, gps: bool = True, kms: bool = False ):
+def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_file: bool = False, send_by_mqtt: bool = False, obd: bool = True, gps: bool = True, kms: bool = True ):
 
     # register the signal handlers for interrupting the execution
     signal.signal(signal.SIGTERM, service_shutdown)
@@ -105,7 +105,7 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
 
                 car_data_entry = {
                     'Timestamp': [timestamp],
-                    'EncryptedData': [kit_bytes.hex()]
+                    'Data': [kit_bytes.hex()]
                 }
 
             else:

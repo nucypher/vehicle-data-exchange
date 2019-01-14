@@ -147,7 +147,7 @@ def get_layout():
     [State('read-button', 'n_clicks_timestamp'),
      State('latest-decrypted-measurements', 'children'),
      State('bob-unique-id', 'children')],
-    [#Event('measurements-update', 'interval'),
+    [Event('measurements-update', 'interval'),
      Event('read-button', 'click')]
 )
 def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurements, bob_id):
@@ -191,7 +191,7 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
             last_timestamp = df['timestamp'].iloc[-1]
 
     db_conn = sqlite3.connect(DB_FILE)
-    encrypted_df_readings = pd.read_sql_query('SELECT Timestamp, EncryptedData '
+    encrypted_df_readings = pd.read_sql_query('SELECT Timestamp, Data '
                                               'FROM {} '
                                               #'WHERE Timestamp > "{}" '
                                               'ORDER BY Timestamp '
@@ -202,7 +202,7 @@ def update_cached_decrypted_measurements_list(read_time, df_json_latest_measurem
     print("N READ", len(encrypted_df_readings))
     for index, row in encrypted_df_readings.iterrows():
 
-        kit_bytes = bytes.fromhex(row['EncryptedData'])
+        kit_bytes = bytes.fromhex(row['Data'])
         message_kit = UmbralMessageKit.from_bytes(kit_bytes)
 
         # Now he can ask the NuCypher network to get a re-encrypted version of each MessageKit.
