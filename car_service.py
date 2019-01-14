@@ -188,22 +188,22 @@ def send_real_time_data ( policy_pubkey, label: bytes = DEFAULT_LABEL, save_as_f
                     client.publish(MQTT_TOPIC, json.dumps(car_data_entry))
 
 
-    # if receive terminal signal
-    except ServiceExit:
-        print("Terminal Signal received")
-        client.publish(MQTT_TOPIC+"/end", "end")
+        # if receive terminal signal
+        except ServiceExit:
+            print("Terminal Signal received")
+            client.publish(MQTT_TOPIC+"/end", "end")
 
-        data = {
-            'data_source': data_source_public_key,
-            'kits': kits,
-        }
-        print("Terminal Signal received")
+            data = {
+                'data_source': data_source_public_key,
+                'kits': kits,
+            }
+            print("Terminal Signal received")
 
-        if save_as_file:
-            with open(DATA_FILENAME, "wb") as file:
-                msgpack.dump(data, file, use_bin_type=True)
+            if save_as_file:
+                with open(DATA_FILENAME, "wb") as file:
+                    msgpack.dump(data, file, use_bin_type=True)
 
-        return data
+            return data
 
 # this is the interrupt handler. Used when the thread is finished (ctrl+c from keyboard)
 def service_shutdown(signum, frame):
