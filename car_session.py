@@ -86,7 +86,7 @@ def reproduce_stored_session(policy_pubkey_bytes: bytes,
                     diff = nextTime - currentTime
 
                     # sleep the thread: simulating gps signal delay
-                    time.sleep(0.01)
+                    #time.sleep(0.01)
 
                     # take the same sample from obd table
                     obdCurs.execute("SELECT * FROM obd WHERE time=(?)", (currentTime,))
@@ -121,7 +121,7 @@ def reproduce_stored_session(policy_pubkey_bytes: bytes,
 
                     if store_in_db:
                         df = pd.DataFrame.from_dict({
-                            'Timestamp': [currentTime],
+                            'Timestamp': [time.time()],
                             'EncryptedData': [kit_bytes.hex()],
                         })
 

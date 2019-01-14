@@ -190,7 +190,7 @@ def grant_access(revoke_time, grant_time, days, m, n, recipient_pubkey_hex):
 
     # We create a view of the Bob who's going to be granted access.
     bob = Bob.from_public_keys(powers_and_material=powers_and_material,
-                                    federated_only=True)
+                               federated_only=True)
 
     # Here are our remaining Policy details, such as:
     # - Policy duration
