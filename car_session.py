@@ -1,6 +1,8 @@
 import time
+import json
 import msgpack
 import sqlite3
+import pandas as pd
 import paho.mqtt.client as mqtt
 
 from nucypher.data_sources import DataSource
@@ -9,6 +11,9 @@ from umbral.keys import UmbralPublicKey
 
 # Test public key
 pub_key_bytes = b'\x03\x07a\xebt|&\x8d\xb6\xb7\xd5b\xf1\x8f\xe1,\xf9n1\xa7\xcf\xe0\xec\xff~E\xdd\x8c.\x8bB\xe4\xbd'
+
+DB_FILE = './data/vehicle_sensors.db'
+DB_NAME = 'VehicleData'
 
 DATA_FILENAME = 'car_data.msgpack'
 RECORDED_CAR_SESSION = "UMA-5_10_17-session.db"
@@ -26,7 +31,8 @@ DEFAULT_LABEL = b"Alicia's car data"
 def reproduce_stored_session(policy_pubkey_bytes: bytes,
                              label: bytes = DEFAULT_LABEL,
                              save_as_file: bool = False,
-                             send_by_mqtt: bool = False):
+                             send_by_mqtt: bool = False,
+                             store_in_db: bool = False):
 
     policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey_bytes)
 
@@ -113,6 +119,18 @@ def reproduce_stored_session(policy_pubkey_bytes: bytes,
                     if send_by_mqtt:
                         client.publish("/Alicia_Car_Data", kit_bytes)
 
+                    if store_in_db:
+                        df = pd.DataFrame.from_dict({
+                            'Timestamp': [currentTime],
+                            'EncryptedData': [kit_bytes.hex()],
+                        })
+
+                        # add new vehicle data
+                        db_conn = sqlite3.connect(DB_FILE)
+                        df.to_sql(name=DB_NAME, con=db_conn, index=False, if_exists='append')
+
+                        print('Added vehicle sensor readings to db: ', car_data)
+
                 else:
                     nextTime = gpsRow[6]
 
@@ -120,7 +138,8 @@ def reproduce_stored_session(policy_pubkey_bytes: bytes,
         if db:
             db.close()
 
-        client.publish("/Alicia_Car_Data/end", "end")
+        if send_by_mqtt:
+            client.publish("/Alicia_Car_Data/end", "end")
 
         data = {
             'data_source': data_source_public_key,
@@ -131,7 +150,9 @@ def reproduce_stored_session(policy_pubkey_bytes: bytes,
             with open(DATA_FILENAME, "wb") as file:
                 msgpack.dump(data, file, use_bin_type=True)
 
-        return data
+        data_json = json.dumps(car_data)
+
+        return data_json
 
 
 # Only for developing and testing purposes.
