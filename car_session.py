@@ -7,6 +7,7 @@ from nucypher.data_sources import DataSource
 
 from umbral.keys import UmbralPublicKey
 
+# Test public key
 pub_key_bytes = b'\x03\x07a\xebt|&\x8d\xb6\xb7\xd5b\xf1\x8f\xe1,\xf9n1\xa7\xcf\xe0\xec\xff~E\xdd\x8c.\x8bB\xe4\xbd'
 
 DATA_FILENAME = 'car_data.msgpack'
@@ -22,10 +23,13 @@ MQTT_PORT = 1883
 DEFAULT_LABEL = b"Alicia's car data"
 
 
-def generate_car_simulation_samples(policy_pubkey,
-                                    label: bytes = DEFAULT_LABEL,
-                                    save_as_file: bool = False,
-                                    send_by_mqtt: bool = False):
+def reproduce_stored_session(policy_pubkey_bytes: bytes,
+                             label: bytes = DEFAULT_LABEL,
+                             save_as_file: bool = False,
+                             send_by_mqtt: bool = False):
+
+    policy_pubkey = UmbralPublicKey.from_bytes(policy_pubkey_bytes)
+
     data_source = DataSource(policy_pubkey_enc=policy_pubkey, label=label)
 
     data_source_public_key = bytes(data_source.stamp)
@@ -132,6 +136,4 @@ def generate_car_simulation_samples(policy_pubkey,
 
 # Only for developing and testing purposes.
 if __name__ == "__main__":
-    pub_key = UmbralPublicKey.from_bytes(pub_key_bytes)
-
-    generate_car_simulation_samples(pub_key, save_as_file=True, send_by_mqtt=True)
+    reproduce_stored_session(pub_key_bytes, save_as_file=True, send_by_mqtt=True)
