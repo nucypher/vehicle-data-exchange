@@ -16,6 +16,7 @@ dash-table-experiments = "==0.6.0"
 umbral = "==0.1.3a0"
 nucypher = { git = 'https://github.com/cygnusv/nucypher.git', ref = 'fix-demo', editable = true }
 paho-mqtt = "*"
+obd = "*"
 
 [requires]
 python_version = "3.7"
