@@ -391,35 +391,35 @@ def get_rpm_speed_graph(df: pd.DataFrame) -> dcc.Graph:
 
 
 def get_lon_lat_graph(df: pd.DataFrame) -> dcc.Graph:
+
     data = dict(
-        type='scattergeo',
-        locationmode='USA-states',
+        type='scattermapbox',
         lon=df['lon'],
         lat=df['lat'],
-        mode='markers',
+        mode='lines+markers',
+        connectgaps=True,
         marker=dict(
-            size=8,
-            opacity=0.8,
-            reversescale=True,
-            autocolorscale=False,
-            symbol='square',
-            line=dict(
-                width=1,
-                color='rgb(102, 102, 102)'
-            ),
-        ))
+            size=9,
+        	),
+        line=dict(
+        	width=2,
+        	)
+        )
 
     graph_layout = dict(
-        title='Longitude and Latitude',
-        colorbar=True,
-        geo=dict(
-            scope='usa',
-            projection=dict(type='albers usa'),
-            showland=True,
-            landcolor="rgb(250, 250, 250)",
-            subunitcolor="rgb(217, 217, 217)",
-            countrycolor="rgb(217, 217, 217)",
-        ),
+    	autosize=False,
+    	hovermode='closest',
+    	mapbox=dict(
+        	accesstoken='pk.eyJ1IjoiZXRwaW5hcmQiLCJhIjoiY2luMHIzdHE0MGFxNXVubTRxczZ2YmUxaCJ9.hwWZful0U2CQxit4ItNsiQ', # Took it from here: https://codepen.io/etpinard/pen/oLdaXP
+        	bearing=0,
+        	center=dict(
+            	lat=36.715706,
+            	lon=-4.498584
+        		),
+        	pitch=0,
+        	zoom=14
+    	),
     )
+
 
     return dcc.Graph(id='lon_lat', figure={'data': [data], 'layout': graph_layout})
